@@ -4,6 +4,7 @@ except ImportError:
     from collections import MutableMapping
 import logging
 import threading
+import time
 from typing import Callable, Dict, Iterable, List, Optional, Union
 
 try:
@@ -300,7 +301,7 @@ class PeriodicMessageTask:
         bus,
         remote: bool = False,
     ):
-        """ 
+        """
         :param can_id:
             CAN-ID of the message
         :param data:
@@ -380,6 +381,7 @@ class NodeScanner:
     active = True
 
     SERVICES = (0x700, 0x580, 0x180, 0x280, 0x380, 0x480, 0x80)
+    ACTIVE_SCAN_DELAY = 0.01
 
     def __init__(self, network: Optional[Network] = None):
         self.network = network
@@ -403,3 +405,4 @@ class NodeScanner:
         sdo_req = b"\x40\x00\x10\x00\x00\x00\x00\x00"
         for node_id in range(1, limit + 1):
             self.network.send_message(0x600 + node_id, sdo_req)
+            time.sleep(self.ACTIVE_SCAN_DELAY)
