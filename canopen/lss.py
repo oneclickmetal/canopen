@@ -1,6 +1,7 @@
 import logging
 import time
 import struct
+from typing import Optional
 try:
     import queue
 except ImportError:
@@ -81,6 +82,7 @@ class LssMaster:
 
     #: Max time in seconds to wait for response from server
     RESPONSE_TIMEOUT = 0.5
+    FAST_SCAN_DELAY = 0.01
 
     def __init__(self):
         self.network = None
@@ -251,38 +253,44 @@ class LssMaster:
         message[0] = CS_IDENTIFY_NON_CONFIGURED_REMOTE_SLAVE
         self.__send_command(message)
 
-    def fast_scan(self):
-        """This command sends a series of fastscan message 
+    def fast_scan(self, vendorId: Optional[int] = None, productCode: Optional[int] = None,
+                  revisionNumber: Optional[int] = None, serialNumber: Optional[int] = None):
+        """This command sends a series of fastscan message
         to find unconfigured slave with lowest number of LSS idenities
 
         :return:
             True if a slave is found.
-            False if there is no candidate. 
+            False if there is no candidate.
             list is the LSS identities [vendor_id, product_code, revision_number, serial_number]
         :rtype: bool, list
         """
+        known_identities = (vendorId, productCode, revisionNumber, serialNumber)
         lss_id = [0] * 4
         lss_bit_check = 128
         lss_sub = 0
         lss_next = 0
 
         if self.__send_fast_scan_message(lss_id[0], lss_bit_check, lss_sub, lss_next):
-            time.sleep(0.01)
+            time.sleep(self.FAST_SCAN_DELAY)
             while lss_sub < 4:
-                lss_bit_check = 32
-                while lss_bit_check > 0:
-                    lss_bit_check -= 1
+                if known_identities[lss_sub] is not None:
+                    lss_id[lss_sub] = known_identities[lss_sub]
+                    lss_bit_check = 0
+                else:
+                    lss_bit_check = 32
+                    while lss_bit_check > 0:
+                        lss_bit_check -= 1
 
-                    if not self.__send_fast_scan_message(lss_id[lss_sub], lss_bit_check, lss_sub, lss_next):
-                        lss_id[lss_sub] |= 1<<lss_bit_check
+                        if not self.__send_fast_scan_message(lss_id[lss_sub], lss_bit_check, lss_sub, lss_next):
+                            lss_id[lss_sub] |= 1<<lss_bit_check
 
-                    time.sleep(0.01)
+                        time.sleep(self.FAST_SCAN_DELAY)
 
                 lss_next = (lss_sub + 1) & 3
                 if not self.__send_fast_scan_message(lss_id[lss_sub], lss_bit_check, lss_sub, lss_next):
                     return False, None
 
-                time.sleep(0.01)
+                time.sleep(self.FAST_SCAN_DELAY)
 
                 # Now the next 32 bits will be scanned
                 lss_sub += 1
