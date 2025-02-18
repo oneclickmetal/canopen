@@ -82,7 +82,7 @@ class LssMaster:
 
     #: Max time in seconds to wait for response from server
     RESPONSE_TIMEOUT = 0.5
-    FAST_SCAN_DELAY = 0.01
+    MESSAGE_SEND_DELAY = 0.01
 
     def __init__(self):
         self.network = None
@@ -271,7 +271,7 @@ class LssMaster:
         lss_next = 0
 
         if self.__send_fast_scan_message(lss_id[0], lss_bit_check, lss_sub, lss_next):
-            time.sleep(self.FAST_SCAN_DELAY)
+            time.sleep(self.MESSAGE_SEND_DELAY)
             while lss_sub < 4:
                 if known_identities[lss_sub] is not None:
                     lss_id[lss_sub] = known_identities[lss_sub]
@@ -284,13 +284,13 @@ class LssMaster:
                         if not self.__send_fast_scan_message(lss_id[lss_sub], lss_bit_check, lss_sub, lss_next):
                             lss_id[lss_sub] |= 1<<lss_bit_check
 
-                        time.sleep(self.FAST_SCAN_DELAY)
+                        time.sleep(self.MESSAGE_SEND_DELAY)
 
                 lss_next = (lss_sub + 1) & 3
                 if not self.__send_fast_scan_message(lss_id[lss_sub], lss_bit_check, lss_sub, lss_next):
                     return False, None
 
-                time.sleep(self.FAST_SCAN_DELAY)
+                time.sleep(self.MESSAGE_SEND_DELAY)
 
                 # Now the next 32 bits will be scanned
                 lss_sub += 1
@@ -323,7 +323,7 @@ class LssMaster:
         if not nodelay:
             # some device needs these delays between messages
             # because it can't handle messages arriving with no delay
-            time.sleep(0.2)
+            time.sleep(self.MESSAGE_SEND_DELAY)
 
         return response
 
